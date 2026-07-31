@@ -102,7 +102,10 @@
   <div class="card">
     <h3 style="margin-top:0;">Histórico</h3>
     <div class="history-list" id="historyList"></div>
-    <button class="btn-clear" id="clearHistory">Limpar histórico</button>
+    <div style="display:flex;gap:8px;margin-top:12px;">
+      <button class="btn-clear" id="clearHistory" style="flex:1;">Limpar histórico</button>
+      <button class="btn-export" id="btnExport" style="flex:1;background:#f3f4f6;border:1px solid #d1d5db;color:#374151;">Exportar CSV</button>
+    </div>
   </div>
 
 <script>
@@ -244,6 +247,26 @@ clearHistory.addEventListener('click', () => {
     localStorage.removeItem(STORAGE_KEY);
     renderHistory();
   }
+});
+
+document.getElementById('btnExport').addEventListener('click', () => {
+  const history = getHistory();
+  if (history.length === 0) { alert('Nenhum dado para exportar'); return; }
+  const headers = ['Nome', 'Seguradora/Plano', 'Valor Pago (R$)', 'Taxa-hora (R$)', 'Minutos Recomendados', 'Data'];
+  const rows = history.map(e => [
+    e.name,
+    e.insurance || '',
+    e.value.toFixed(2),
+    e.rate.toFixed(2),
+    e.recommendedMinutes || '',
+    formatDate(e.date)
+  ]);
+  const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'historico-consultas.csv';
+  link.click();
 });
 
 calculate();
