@@ -454,11 +454,9 @@ renderProjection();
 
 document.getElementById('targetRevenue').addEventListener('input', renderProjection);
 
-function median(arr) {
+function mean(arr) {
   if (!arr.length) return 0;
-  const sorted = [...arr].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+  return arr.reduce((a, b) => a + b, 0) / arr.length;
 }
 
 function renderProjection() {
@@ -478,24 +476,22 @@ function renderProjection() {
   projectionEmpty.style.display = 'none';
   projectionResult.style.display = 'block';
 
-  // Mediana dos valores pagos e minutos recomendados
+  // Média dos valores pagos e minutos recomendados
   const values = history.map(e => e.value);
   const minutes = history.map(e => e.recommendedMinutes).filter(m => m > 0);
-  const medianValue = median(values);
-  const medianMinutes = median(minutes) || 30;
+  const avgValue = mean(values);
+  const avgMinutes = mean(minutes) || 30;
 
   const targetRevenue = parseFloat(document.getElementById('targetRevenue').value) || 15000;
   const weeksPerMonth = 4;
   const daysPerWeek = 5;
 
   // Cálculos
-  const patientsPerMonth = Math.ceil(targetRevenue / medianValue);
-  const totalMinutesPerMonth = patientsPerMonth * medianMinutes;
+  const patientsPerMonth = Math.ceil(targetRevenue / avgValue);
+  const totalMinutesPerMonth = patientsPerMonth * avgMinutes;
   const hoursPerWeek = totalMinutesPerMonth / 60 / weeksPerMonth;
   const patientsPerWeek = patientsPerMonth / weeksPerMonth;
   const patientsPerDay = patientsPerWeek / daysPerWeek;
-  const daysNeededPerWeek = Math.ceil(hoursPerWeek * 60 / medianMinutes / patientsPerDay); // simplificado: hoursPerWeek em dias
-  // Melhor: dias necessários = horas por semana / horas por dia (assumindo 8h dia)
   const hoursPerDay = 8;
   const daysNeeded = Math.ceil(hoursPerWeek / hoursPerDay * 10) / 10;
 
@@ -507,11 +503,11 @@ function renderProjection() {
   // Detalhes
   document.getElementById('projDetails').innerHTML = `
     <strong>Baseado no histórico (${history.length} registros):</strong><br>
-    Valor mediano por consulta: <strong>R$ ${medianValue.toFixed(2)}</strong><br>
-    Tempo mediano por consulta: <strong>${medianMinutes} min</strong><br>
+    Valor médio por consulta: <strong>R$ ${avgValue.toFixed(2)}</strong><br>
+    Tempo médio por consulta: <strong>${Math.round(avgMinutes)} min</strong><br>
     Meta mensal: <strong>R$ ${targetRevenue.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</strong><br>
     <br>
-    Cálculo: ${patientsPerMonth} pacientes × ${medianMinutes}min = ${totalMinutesPerMonth}min/mês = ${(totalMinutesPerMonth/60).toFixed(1)}h/mês = ${hoursPerWeek.toFixed(1)}h/semana<br>
+    Cálculo: ${patientsPerMonth} pacientes × ${Math.round(avgMinutes)}min = ${Math.round(totalMinutesPerMonth)}min/mês = ${(totalMinutesPerMonth/60).toFixed(1)}h/mês = ${hoursPerWeek.toFixed(1)}h/semana<br>
     Assumindo jornada de 8h/dia, 5 dias/semana = ${(daysPerWeek * hoursPerDay)}h/semana disponíveis.
   `;
 }
