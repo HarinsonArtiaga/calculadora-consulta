@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Calculadora de Consulta</title>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <style>
     * { box-sizing: border-box; }
     body {
@@ -252,21 +253,38 @@ clearHistory.addEventListener('click', () => {
 document.getElementById('btnExport').addEventListener('click', () => {
   const history = getHistory();
   if (history.length === 0) { alert('Nenhum dado para exportar'); return; }
-  const headers = ['Nome', 'Seguradora/Plano', 'Valor Pago (R$)', 'Taxa-hora (R$)', 'Minutos Recomendados', 'Data'];
-  const rows = history.map(e => [
-    e.name,
-    e.insurance || '',
-    e.value.toFixed(2),
-    e.rate.toFixed(2),
-    e.recommendedMinutes || '',
-    formatDate(e.date)
-  ]);
-  const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = 'historico-consultas.csv';
-  link.click();
+  const wsData = [
+    ['Nome', 'Seguradora/Plano', 'Valor Pago (R$)', 'Taxa-hora (R$)', 'Minutos Recomendados', 'Data'],
+    ...history.map(e => [
+      e.name,
+      e.insurance || '',
+      e.value,
+      e.rate,
+      e.recommendedMinutes || '',
+      formatDate(e.date)
+    ])
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+  // Formatação de moeda nas colunas C e D
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  for (let R = 1; R <= range.e.r; ++R) {
+    const cAddr = XLSX.utils.encode_cell({r:R, c:2}); // Valor Pago
+    const dAddr = XLSX.utils.encode_cell({r:R, c:3}); // Taxa-hora
+    if (ws[cAddr]) { ws[cAddr].t = 'n'; ws[cAddr].z = 'R$ #,##0.00'; }
+    if (ws[dAddr]) { ws[dAddr].t = 'n'; ws[dAddr].z = 'R$ #,##0.00'; }
+  }
+  // Ajustar largura das colunas
+  ws['!cols'] = [
+    {wch: 25}, // Nome
+    {wch: 22}, // Seguradora
+    {wch: 18}, // Valor Pago
+    {wch: 16}, // Taxa-hora
+    {wch: 22}, // Minutos Recomendados
+    {wch: 12}  // Data
+  ];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Histórico');
+  XLSX.writeFile(wb, 'historico-consultas.xlsx');
 });
 
 calculate();
