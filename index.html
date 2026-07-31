@@ -119,7 +119,21 @@
       .history-item { flex-wrap: wrap; gap: 8px; }
       .history-value { margin-left: 0; order: -1; }
       .history-actions { width: 100%; justify-content: flex-end; }
+      .proj-grid { grid-template-columns: 1fr 1fr; }
     }
+
+    .projection-result { animation: slideDown 0.3s ease; }
+    .proj-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px; }
+    .proj-card { background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 16px 12px; text-align: center; transition: all 0.15s; }
+    .proj-card:hover { border-color: #cbd5e1; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04); }
+    .proj-card.primary { border-color: #3b82f6; background: #eff6ff; }
+    .proj-card.accent { border-color: #22c55e; background: #f0fdf4; }
+    .proj-label { font-size: 0.7rem; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 6px; }
+    .proj-value { font-size: 1.5rem; font-weight: 800; color: #0f172a; font-variant-numeric: tabular-nums; }
+    .proj-card.primary .proj-value { color: #1e40af; }
+    .proj-card.accent .proj-value { color: #166534; }
+    .proj-details { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; font-size: 0.8rem; color: #475569; line-height: 1.7; }
+    .proj-details strong { color: #1e293b; }
   </style>
 </head>
 <body>
@@ -187,6 +201,44 @@
         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         Exportar Excel
       </button>
+    </div>
+  </div>
+
+  <div class="card" id="projectionCard" style="display:none;">
+    <div class="card-header">
+      <h3>
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        Projeção de Faturamento
+      </h3>
+    </div>
+    <div class="field" style="margin-bottom:16px;">
+      <label>Meta de faturamento mensal (R$)</label>
+      <input type="number" id="targetRevenue" value="15000" step="100" min="0" inputmode="decimal">
+    </div>
+    <div class="projection-result" id="projectionResult" style="display:none;">
+      <div class="proj-grid">
+        <div class="proj-card primary">
+          <div class="proj-label">Pacientes necessários / mês</div>
+          <div class="proj-value" id="projPatientsMonth">—</div>
+        </div>
+        <div class="proj-card">
+          <div class="proj-label">Horas por semana</div>
+          <div class="proj-value" id="projHoursWeek">—</div>
+        </div>
+        <div class="proj-card">
+          <div class="proj-label">Pacientes por dia</div>
+          <div class="proj-value" id="projPatientsDay">—</div>
+        </div>
+        <div class="proj-card accent">
+          <div class="proj-label">Dias por semana (seg-sex)</div>
+          <div class="proj-value" id="projDaysWeek">—</div>
+        </div>
+      </div>
+      <div class="proj-details" id="projDetails"></div>
+    </div>
+    <div class="projection-empty" id="projectionEmpty" style="text-align:center;color:#94a3b8;padding:24px;">
+      <svg class="icon" style="margin:0 auto 12px;opacity:0.5;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      Adicione registros ao histórico para ver a projeção
     </div>
   </div>
 
@@ -398,6 +450,71 @@ document.getElementById('btnExport').addEventListener('click', () => {
 
 calculate();
 renderHistory();
+renderProjection();
+
+document.getElementById('targetRevenue').addEventListener('input', renderProjection);
+
+function median(arr) {
+  if (!arr.length) return 0;
+  const sorted = [...arr].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+function renderProjection() {
+  const history = getHistory();
+  const projectionCard = document.getElementById('projectionCard');
+  const projectionResult = document.getElementById('projectionResult');
+  const projectionEmpty = document.getElementById('projectionEmpty');
+
+  if (history.length === 0) {
+    projectionCard.style.display = 'block';
+    projectionResult.style.display = 'none';
+    projectionEmpty.style.display = 'block';
+    return;
+  }
+
+  projectionCard.style.display = 'block';
+  projectionEmpty.style.display = 'none';
+  projectionResult.style.display = 'block';
+
+  // Mediana dos valores pagos e minutos recomendados
+  const values = history.map(e => e.value);
+  const minutes = history.map(e => e.recommendedMinutes).filter(m => m > 0);
+  const medianValue = median(values);
+  const medianMinutes = median(minutes) || 30;
+
+  const targetRevenue = parseFloat(document.getElementById('targetRevenue').value) || 15000;
+  const weeksPerMonth = 4;
+  const daysPerWeek = 5;
+
+  // Cálculos
+  const patientsPerMonth = Math.ceil(targetRevenue / medianValue);
+  const totalMinutesPerMonth = patientsPerMonth * medianMinutes;
+  const hoursPerWeek = totalMinutesPerMonth / 60 / weeksPerMonth;
+  const patientsPerWeek = patientsPerMonth / weeksPerMonth;
+  const patientsPerDay = patientsPerWeek / daysPerWeek;
+  const daysNeededPerWeek = Math.ceil(hoursPerWeek * 60 / medianMinutes / patientsPerDay); // simplificado: hoursPerWeek em dias
+  // Melhor: dias necessários = horas por semana / horas por dia (assumindo 8h dia)
+  const hoursPerDay = 8;
+  const daysNeeded = Math.ceil(hoursPerWeek / hoursPerDay * 10) / 10;
+
+  document.getElementById('projPatientsMonth').textContent = patientsPerMonth.toLocaleString('pt-BR');
+  document.getElementById('projHoursWeek').textContent = hoursPerWeek.toFixed(1) + 'h';
+  document.getElementById('projPatientsDay').textContent = patientsPerDay.toFixed(1);
+  document.getElementById('projDaysWeek').textContent = daysNeeded.toFixed(1);
+
+  // Detalhes
+  document.getElementById('projDetails').innerHTML = `
+    <strong>Baseado no histórico (${history.length} registros):</strong><br>
+    Valor mediano por consulta: <strong>R$ ${medianValue.toFixed(2)}</strong><br>
+    Tempo mediano por consulta: <strong>${medianMinutes} min</strong><br>
+    Meta mensal: <strong>R$ ${targetRevenue.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</strong><br>
+    <br>
+    Cálculo: ${patientsPerMonth} pacientes × ${medianMinutes}min = ${totalMinutesPerMonth}min/mês = ${(totalMinutesPerMonth/60).toFixed(1)}h/mês = ${hoursPerWeek.toFixed(1)}h/semana<br>
+    Assumindo jornada de 8h/dia, 5 dias/semana = ${(daysPerWeek * hoursPerDay)}h/semana disponíveis.
+  `;
+}
 </script>
 </body>
 </html>
