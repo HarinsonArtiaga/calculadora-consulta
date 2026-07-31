@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calculadora de Consulta</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 480px; margin: 0 auto; padding: 16px;
+      background: #f5f5f5; color: #1a1a1a; line-height: 1.5;
+    }
+    .card {
+      background: white; border-radius: 12px; padding: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 16px;
+    }
+    h1 { font-size: 1.5rem; margin: 0 0 16px; text-align: center; }
+    .row { display: flex; gap: 12px; margin-bottom: 12px; }
+    .row > * { flex: 1; }
+    label { display: block; font-size: 0.85rem; color: #666; margin-bottom: 4px; }
+    input, select {
+      width: 100%; padding: 12px 14px; border: 1px solid #ddd;
+      border-radius: 8px; font-size: 1rem; background: #fafafa;
+    }
+    input:focus, select:focus { outline: none; border-color: #2563eb; background: white; }
+    .result {
+      background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px;
+      padding: 16px; margin-top: 16px;
+    }
+    .result h3 { margin: 0 0 8px; font-size: 1rem; color: #1e40af; }
+    .time-large { font-size: 2.5rem; font-weight: 700; color: #1e3a8a; }
+    .slots { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+    .slot {
+      flex: 1; min-width: 70px; padding: 10px; text-align: center;
+      background: white; border: 2px solid #e5e7eb; border-radius: 8px;
+      font-weight: 600; color: #374151; transition: all 0.15s;
+    }
+    .slot.recommended { border-color: #22c55e; background: #f0fdf4; color: #166534; }
+    .slot small { display: block; font-size: 0.7rem; font-weight: 400; color: #6b7280; margin-top: 2px; }
+    .history-list { max-height: 300px; overflow-y: auto; }
+    .history-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px; border-bottom: 1px solid #f0f0f0;
+    }
+    .history-item:last-child { border-bottom: none; }
+    .history-info { display: flex; flex-direction: column; gap: 2px; }
+    .history-name { font-weight: 600; }
+    .history-meta { font-size: 0.75rem; color: #6b7280; }
+    .history-value { font-weight: 700; color: #1e3a8a; }
+    .empty { text-align: center; color: #9ca3af; padding: 24px; font-size: 0.9rem; }
+    .btn-clear {
+      width: 100%; padding: 10px; margin-top: 12px;
+      background: #fee2e2; border: 1px solid #fecaca; color: #991b1b;
+      border-radius: 8px; font-weight: 600; cursor: pointer;
+    }
+    .btn-clear:hover { background: #fecaca; }
+    @media (max-width: 400px) {
+      .row { flex-direction: column; gap: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Calculadora de Consulta</h1>
+    <div class="row">
+      <div>
+        <label>Taxa-hora alvo (R$)</label>
+        <input type="number" id="targetRate" value="400" step="10" min="10">
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label>Nome do paciente</label>
+        <input type="text" id="patientName" placeholder="Ex: Maria Silva">
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label>Seguradora / Plano</label>
+        <input type="text" id="insurance" placeholder="Ex: Unimed, Amil, Particular">
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label>Valor pago pelo paciente (R$)</label>
+        <input type="number" id="paidValue" step="0.01" min="0" placeholder="Ex: 200">
+      </div>
+    </div>
+
+    <button class="btn-calc" id="btnCalc" style="width:100%;padding:14px;margin-top:8px;background:#2563eb;color:white;border:none;border-radius:8px;font-size:1rem;font-weight:600;cursor:pointer;">Calcular</button>
+
+    <button class="btn-save" id="btnSave" style="width:100%;padding:14px;margin-top:8px;background:#16a34a;color:white;border:none;border-radius:8px;font-size:1rem;font-weight:600;cursor:pointer;display:none;">Salvar no histórico</button>
+
+    <div class="result" id="result" style="display:none;">
+      <h3>Tempo equivalente à sua taxa-hora</h3>
+      <div class="time-large" id="exactTime">0min</div>
+      <div class="slots" id="slots"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;">Histórico</h3>
+    <div class="history-list" id="historyList"></div>
+    <button class="btn-clear" id="clearHistory">Limpar histórico</button>
+  </div>
+
+<script>
+const STORAGE_KEY = 'consulta_history_v1';
+const DEFAULT_SLOTS = [10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 70, 80, 90, 120]; // minutos
+
+const targetRate = document.getElementById('targetRate');
+const patientName = document.getElementById('patientName');
+const insurance = document.getElementById('insurance');
+const paidValue = document.getElementById('paidValue');
+const result = document.getElementById('result');
+const exactTime = document.getElementById('exactTime');
+const slots = document.getElementById('slots');
+const historyList = document.getElementById('historyList');
+const clearHistory = document.getElementById('clearHistory');
+const btnSave = document.getElementById('btnSave');
+
+function formatTime(minutes) {
+  const h = Math.floor(minutes / 60);
+  const m = Math.round(minutes % 60);
+  if (h > 0 && m > 0) return `${h}h ${m}min`;
+  if (h > 0) return `${h}h`;
+  return `${m}min`;
+}
+
+function findRecommendedSlot(exactMinutes) {
+  return DEFAULT_SLOTS.reduce((prev, curr) =>
+    Math.abs(curr - exactMinutes) < Math.abs(prev - exactMinutes) ? curr : prev
+  );
+}
+
+function calculate() {
+  const rate = parseFloat(targetRate.value) || 400;
+  const value = parseFloat(paidValue.value) || 0;
+  if (value <= 0) { result.style.display = 'none'; btnSave.style.display = 'none'; return; }
+  const exactMinutes = (value / rate) * 60;
+  exactTime.textContent = formatTime(exactMinutes);
+  renderSlots(exactMinutes);
+  result.style.display = 'block';
+  btnSave.style.display = 'block';
+}
+
+function renderSlots(exactMinutes) {
+  const recommended = findRecommendedSlot(exactMinutes);
+  slots.innerHTML = DEFAULT_SLOTS.map(m => {
+    const isRec = m === recommended;
+    return `<div class="slot ${isRec ? 'recommended' : ''}">
+      ${m}min<small>${isRec ? 'recomendado' : 'opção'}</small>
+    </div>`;
+  }).join('');
+}
+
+function saveEntry() {
+  const name = patientName.value.trim();
+  const ins = insurance.value.trim();
+  const value = parseFloat(paidValue.value);
+  const rate = parseFloat(targetRate.value);
+  if (!name || !value) return;
+  const entry = {
+    name, insurance: ins, value, rate,
+    date: new Date().toISOString()
+  };
+  const history = getHistory();
+  history.unshift(entry);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+  renderHistory();
+  btnSave.textContent = 'Salvo!';
+  btnSave.style.background = '#6b7280';
+  setTimeout(() => {
+    btnSave.textContent = 'Salvar no histórico';
+    btnSave.style.background = '#16a34a';
+  }, 1500);
+}
+
+function getHistory() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
+  catch { return []; }
+}
+
+function renderHistory() {
+  const history = getHistory();
+  if (history.length === 0) {
+    historyList.innerHTML = '<div class="empty">Nenhum registro ainda</div>';
+    return;
+  }
+  historyList.innerHTML = history.map((e, idx) => `
+    <div class="history-item">
+      <div class="history-info">
+        <span class="history-name">${escapeHtml(e.name)}</span>
+        <span class="history-meta">${e.insurance ? escapeHtml(e.insurance) + ' • ' : ''}${formatDate(e.date)}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="history-value">R$ ${e.value.toFixed(2)}</span>
+        <button class="btn-del" data-idx="${idx}" style="padding:6px 10px;background:#fee2e2;border:1px solid #fecaca;color:#991b1b;border-radius:6px;font-size:0.75rem;font-weight:600;cursor:pointer;">Excluir</button>
+      </div>
+    </div>
+  `).join('');
+
+  // Bind delete buttons
+  document.querySelectorAll('.btn-del').forEach(btn => {
+    btn.addEventListener('click', (ev) => {
+      const idx = parseInt(ev.currentTarget.dataset.idx);
+      deleteEntry(idx);
+    });
+  });
+}
+
+function deleteEntry(idx) {
+  if (!confirm('Excluir este registro?')) return;
+  const history = getHistory();
+  history.splice(idx, 1);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+  renderHistory();
+}
+
+function formatDate(iso) {
+  const d = new Date(iso);
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+[targetRate, patientName, insurance, paidValue].forEach(el =>
+  el.addEventListener('input', calculate)
+);
+
+document.getElementById('btnCalc').addEventListener('click', calculate);
+btnSave.addEventListener('click', saveEntry);
+
+clearHistory.addEventListener('click', () => {
+  if (confirm('Apagar todo o histórico?')) {
+    localStorage.removeItem(STORAGE_KEY);
+    renderHistory();
+  }
+});
+
+calculate();
+renderHistory();
+</script>
+</body>
+</html>
