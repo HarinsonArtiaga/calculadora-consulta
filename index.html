@@ -219,7 +219,7 @@
     <div class="card-header">
       <h3>
         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-        Projeção de Faturamento
+        Projeção de Faturamento (Meta)
       </h3>
     </div>
     <div class="field" style="margin-bottom:16px;">
@@ -250,6 +250,40 @@
     <div class="projection-empty" id="projectionEmpty" style="text-align:center;color:#94a3b8;padding:24px;">
       <svg class="icon" style="margin:0 auto 12px;opacity:0.5;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
       Adicione registros ao histórico para ver a projeção
+    </div>
+  </div>
+
+  <div class="card" id="currentProjectionCard" style="display:none;">
+    <div class="card-header">
+      <h3>
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        Projeção Atual (Pacientes Cadastrados)
+      </h3>
+    </div>
+    <div class="current-projection-result" id="currentProjectionResult" style="display:none;">
+      <div class="proj-grid">
+        <div class="proj-card primary">
+          <div class="proj-label">Pacientes únicos</div>
+          <div class="proj-value" id="currUniquePatients">—</div>
+        </div>
+        <div class="proj-card">
+          <div class="proj-label">Faturamento mensal (1x/mês)</div>
+          <div class="proj-value" id="currMonthlyRevenue">—</div>
+        </div>
+        <div class="proj-card">
+          <div class="proj-label">Horas por semana</div>
+          <div class="proj-value" id="currHoursWeek">—</div>
+        </div>
+        <div class="proj-card accent">
+          <div class="proj-label">Dias por semana (seg-sex)</div>
+          <div class="proj-value" id="currDaysWeek">—</div>
+        </div>
+      </div>
+      <div class="proj-details" id="currProjDetails"></div>
+    </div>
+    <div class="projection-empty" id="currentProjectionEmpty" style="text-align:center;color:#94a3b8;padding:24px;">
+      <svg class="icon" style="margin:0 auto 12px;opacity:0.5;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      Adicione pacientes ao histórico para ver a projeção atual
     </div>
   </div>
 
@@ -465,6 +499,7 @@ document.getElementById('btnExport').addEventListener('click', () => {
 calculate();
 renderHistory();
 renderProjection();
+renderCurrentProjection();
 
 document.getElementById('targetRevenue').addEventListener('input', renderProjection);
 
@@ -523,6 +558,54 @@ function renderProjection() {
     <br>
     Cálculo: ${patientsPerMonth} pacientes × ${Math.round(avgMinutes)}min = ${Math.round(totalMinutesPerMonth)}min/mês = ${(totalMinutesPerMonth/60).toFixed(1)}h/mês = ${hoursPerWeek.toFixed(1)}h/semana<br>
     Assumindo jornada de 8h/dia, 5 dias/semana = ${(daysPerWeek * hoursPerDay)}h/semana disponíveis.
+  `;
+}
+
+function renderCurrentProjection() {
+  const history = getHistory();
+  const card = document.getElementById('currentProjectionCard');
+  const result = document.getElementById('currentProjectionResult');
+  const empty = document.getElementById('currentProjectionEmpty');
+
+  if (history.length === 0) {
+    card.style.display = 'block';
+    result.style.display = 'none';
+    empty.style.display = 'block';
+    return;
+  }
+
+  card.style.display = 'block';
+  empty.style.display = 'none';
+  result.style.display = 'block';
+
+  // Pacientes únicos (pelo nome)
+  const uniquePatients = [...new Map(history.map(e => [e.name.toLowerCase(), e])).values()];
+  const numUnique = uniquePatients.length;
+
+  // Soma dos valores dos pacientes únicos (usando o último registro de cada)
+  const totalMonthlyRevenue = uniquePatients.reduce((sum, p) => sum + p.value, 0);
+  const avgMinutes = mean(uniquePatients.map(p => p.recommendedMinutes).filter(m => m > 0)) || 30;
+
+  const weeksPerMonth = 4;
+  const daysPerWeek = 5;
+  const hoursPerDay = 8;
+
+  const totalMinutesPerMonth = uniquePatients.reduce((sum, p) => sum + (p.recommendedMinutes || 0), 0);
+  const hoursPerWeek = totalMinutesPerMonth / 60 / weeksPerMonth;
+  const daysNeeded = Math.ceil(hoursPerWeek / hoursPerDay * 10) / 10;
+
+  document.getElementById('currUniquePatients').textContent = numUnique;
+  document.getElementById('currMonthlyRevenue').textContent = 'R$ ' + totalMonthlyRevenue.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+  document.getElementById('currHoursWeek').textContent = hoursPerWeek.toFixed(1) + 'h';
+  document.getElementById('currDaysWeek').textContent = daysNeeded.toFixed(1);
+
+  // Detalhes
+  document.getElementById('currProjDetails').innerHTML = `
+    <strong>Baseado em ${numUnique} paciente${numUnique !== 1 ? 's' : ''} único${numUnique !== 1 ? 's' : ''} do histórico:</strong><br>
+    Soma dos valores (1 consulta/mês cada): <strong>R$ ${totalMonthlyRevenue.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</strong><br>
+    Tempo total mensal: <strong>${Math.round(totalMinutesPerMonth)} min</strong> (${(totalMinutesPerMonth/60).toFixed(1)}h)<br>
+    <br>
+    Se cada paciente vier 1x por mês: ${hoursPerWeek.toFixed(1)}h/semana = ${daysNeeded.toFixed(1)} dias/semana (8h/dia).
   `;
 }
 </script>
