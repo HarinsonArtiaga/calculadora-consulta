@@ -8,110 +8,193 @@
   <style>
     * { box-sizing: border-box; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      max-width: 480px; margin: 0 auto; padding: 16px;
-      background: #f5f5f5; color: #1a1a1a; line-height: 1.5;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      max-width: 500px; margin: 0 auto; padding: 16px;
+      background: linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
+      color: #1e293b; line-height: 1.5; min-height: 100vh;
     }
     .card {
-      background: white; border-radius: 12px; padding: 20px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 16px;
+      background: white; border-radius: 16px; padding: 24px;
+      box-shadow: 0 4px 20px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.08);
+      margin-bottom: 16px; border: 1px solid rgba(148, 163, 184, 0.15);
     }
-    h1 { font-size: 1.5rem; margin: 0 0 16px; text-align: center; }
-    .row { display: flex; gap: 12px; margin-bottom: 12px; }
+    .card-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #f1f5f9;
+    }
+    .card-header h1 { font-size: 1.35rem; font-weight: 700; margin: 0; color: #0f172a; }
+    .card-header h3 { font-size: 1.1rem; font-weight: 600; margin: 0; color: #1e293b; }
+    .icon { width: 20px; height: 20px; }
+    .row { display: flex; gap: 12px; margin-bottom: 16px; }
     .row > * { flex: 1; }
-    label { display: block; font-size: 0.85rem; color: #666; margin-bottom: 4px; }
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    label { font-size: 0.8rem; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.03em; }
     input, select {
-      width: 100%; padding: 12px 14px; border: 1px solid #ddd;
-      border-radius: 8px; font-size: 1rem; background: #fafafa;
+      width: 100%; padding: 14px 16px; border: 1.5px solid #e2e8f0;
+      border-radius: 10px; font-size: 1rem; font-family: inherit;
+      background: #fafbfc; color: #0f172a; transition: all 0.15s ease;
     }
-    input:focus, select:focus { outline: none; border-color: #2563eb; background: white; }
-    .result {
-      background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px;
-      padding: 16px; margin-top: 16px;
+    input::placeholder { color: #94a3b8; }
+    input:focus, select:focus {
+      outline: none; border-color: #3b82f6; background: white;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
     }
-    .result h3 { margin: 0 0 8px; font-size: 1rem; color: #1e40af; }
-    .time-large { font-size: 2.5rem; font-weight: 700; color: #1e3a8a; }
-    .slots { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+    input:hover:not(:focus), select:hover:not(:focus) { border-color: #cbd5e1; }
+    .btn-primary, .btn-secondary, .btn-success, .btn-ghost {
+      width: 100%; padding: 14px 20px; border: none; border-radius: 10px;
+      font-size: 0.95rem; font-weight: 600; font-family: inherit; cursor: pointer;
+      transition: all 0.15s ease; display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-primary { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; }
+    .btn-primary:hover { background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-success { background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: white; }
+    .btn-success:hover { background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3); }
+    .btn-success:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .btn-secondary { background: #f1f5f9; color: #334155; border: 1.5px solid #e2e8f0; }
+    .btn-secondary:hover { background: #e2e8f0; border-color: #cbd5e1; }
+    .btn-ghost { background: transparent; color: #64748b; border: 1.5px dashed #cbd5e1; }
+    .btn-ghost:hover { background: #f8fafc; border-color: #94a3b8; color: #334155; }
+    .btn-danger { background: #fef2f2; color: #dc2626; border: 1.5px solid #fecaca; }
+    .btn-danger:hover { background: #fee2e2; border-color: #fca5a5; }
+    .btn-group { display: flex; gap: 10px; margin-top: 16px; }
+    .btn-group > * { flex: 1; }
+
+    .result { background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 1.5px solid #bfdbfe; border-radius: 12px; padding: 20px; margin-top: 16px; display: none; animation: slideDown 0.3s ease; }
+    @keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+    .result h3 { margin: 0 0 12px; font-size: 0.95rem; font-weight: 600; color: #1e40af; display: flex; align-items: center; gap: 8px; }
+    .time-large { font-size: 3rem; font-weight: 800; color: #1e3a8a; line-height: 1.1; font-variant-numeric: tabular-nums; }
+    .time-sub { font-size: 0.85rem; color: #3b82f6; font-weight: 500; margin-top: 4px; display: block; }
+    .slots { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
     .slot {
-      flex: 1; min-width: 70px; padding: 10px; text-align: center;
-      background: white; border: 2px solid #e5e7eb; border-radius: 8px;
-      font-weight: 600; color: #374151; transition: all 0.15s;
+      flex: 1; min-width: 68px; padding: 12px 8px; text-align: center;
+      background: white; border: 2px solid #e2e8f0; border-radius: 10px;
+      font-weight: 600; color: #334155; transition: all 0.15s ease;
+      position: relative; overflow: hidden;
     }
+    .slot::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: transparent; transition: background 0.15s; }
+    .slot:hover { border-color: #cbd5e1; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06); }
     .slot.recommended { border-color: #22c55e; background: #f0fdf4; color: #166534; }
-    .slot small { display: block; font-size: 0.7rem; font-weight: 400; color: #6b7280; margin-top: 2px; }
-    .history-list { max-height: 300px; overflow-y: auto; }
+    .slot.recommended::before { background: #22c55e; }
+    .slot.recommended:hover { box-shadow: 0 4px 16px rgba(34, 197, 94, 0.15); }
+    .slot small { display: block; font-size: 0.65rem; font-weight: 500; color: #94a3b8; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.02em; }
+    .slot.recommended small { color: #16a34a; }
+
+    .history-list { max-height: 380px; overflow-y: auto; padding-right: 4px; }
+    .history-list::-webkit-scrollbar { width: 6px; }
+    .history-list::-webkit-scrollbar-track { background: transparent; }
+    .history-list::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
     .history-item {
       display: flex; justify-content: space-between; align-items: center;
-      padding: 12px; border-bottom: 1px solid #f0f0f0;
+      padding: 14px 12px; border-bottom: 1px solid #f1f5f9;
+      transition: background 0.15s; border-radius: 8px; margin: 2px 4px;
     }
+    .history-item:hover { background: #f8fafc; }
     .history-item:last-child { border-bottom: none; }
-    .history-info { display: flex; flex-direction: column; gap: 2px; }
-    .history-name { font-weight: 600; }
-    .history-meta { font-size: 0.75rem; color: #6b7280; }
-    .history-value { font-weight: 700; color: #1e3a8a; }
-    .empty { text-align: center; color: #9ca3af; padding: 24px; font-size: 0.9rem; }
-    .btn-clear {
-      width: 100%; padding: 10px; margin-top: 12px;
-      background: #fee2e2; border: 1px solid #fecaca; color: #991b1b;
-      border-radius: 8px; font-weight: 600; cursor: pointer;
+    .history-info { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+    .history-name { font-weight: 600; font-size: 0.95rem; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .history-meta { font-size: 0.75rem; color: #94a3b8; display: flex; flex-wrap: wrap; gap: 8px; }
+    .history-meta span { display: inline-flex; align-items: center; gap: 4px; }
+    .history-value { font-weight: 700; font-size: 1rem; color: #1e3a8a; white-space: nowrap; margin-left: 12px; }
+    .history-actions { display: flex; gap: 6px; margin-left: 8px; }
+    .btn-icon {
+      width: 36px; height: 36px; border-radius: 8px; border: none;
+      background: #f1f5f9; color: #64748b; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s ease;
     }
-    .btn-clear:hover { background: #fecaca; }
-    @media (max-width: 400px) {
+    .btn-icon:hover { background: #e2e8f0; color: #334155; }
+    .btn-icon.delete:hover { background: #fee2e2; color: #dc2626; }
+    .empty { text-align: center; color: #94a3b8; padding: 32px 16px; font-size: 0.9rem; }
+    .empty .icon { margin: 0 auto 12px; opacity: 0.5; }
+
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px); background: #1e293b; color: white; padding: 14px 24px; border-radius: 12px; font-weight: 500; font-size: 0.9rem; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.2); opacity: 0; transition: all 0.3s ease; z-index: 1000; }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+    .toast.success { background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); }
+
+    @media (max-width: 420px) {
       .row { flex-direction: column; gap: 0; }
+      .btn-group { flex-direction: column; }
+      .time-large { font-size: 2.5rem; }
+      .history-item { flex-wrap: wrap; gap: 8px; }
+      .history-value { margin-left: 0; order: -1; }
+      .history-actions { width: 100%; justify-content: flex-end; }
     }
   </style>
 </head>
 <body>
   <div class="card">
-    <h1>Calculadora de Consulta</h1>
+    <div class="card-header">
+      <h1>Calculadora de Consulta</h1>
+    </div>
     <div class="row">
-      <div>
+      <div class="field">
         <label>Taxa-hora alvo (R$)</label>
-        <input type="number" id="targetRate" value="400" step="10" min="10">
+        <input type="number" id="targetRate" value="400" step="10" min="10" inputmode="decimal">
       </div>
     </div>
     <div class="row">
-      <div>
+      <div class="field">
         <label>Nome do paciente</label>
-        <input type="text" id="patientName" placeholder="Ex: Maria Silva">
+        <input type="text" id="patientName" placeholder="Ex: Maria Silva" autocomplete="name">
       </div>
     </div>
     <div class="row">
-      <div>
+      <div class="field">
         <label>Seguradora / Plano</label>
-        <input type="text" id="insurance" placeholder="Ex: Unimed, Amil, Particular">
+        <input type="text" id="insurance" placeholder="Ex: Unimed, Amil, Particular" autocomplete="off">
       </div>
     </div>
     <div class="row">
-      <div>
+      <div class="field">
         <label>Valor pago pelo paciente (R$)</label>
-        <input type="number" id="paidValue" step="0.01" min="0" placeholder="Ex: 200">
+        <input type="number" id="paidValue" step="0.01" min="0" placeholder="Ex: 200" inputmode="decimal">
       </div>
     </div>
 
-    <button class="btn-calc" id="btnCalc" style="width:100%;padding:14px;margin-top:8px;background:#2563eb;color:white;border:none;border-radius:8px;font-size:1rem;font-weight:600;cursor:pointer;">Calcular</button>
+    <button class="btn-primary" id="btnCalc">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+      Calcular
+    </button>
 
-    <button class="btn-save" id="btnSave" style="width:100%;padding:14px;margin-top:8px;background:#16a34a;color:white;border:none;border-radius:8px;font-size:1rem;font-weight:600;cursor:pointer;display:none;">Salvar no histórico</button>
+    <button class="btn-success" id="btnSave" style="display:none; margin-top:10px;">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>
+      Salvar no histórico
+    </button>
 
-    <div class="result" id="result" style="display:none;">
-      <h3>Tempo equivalente à sua taxa-hora</h3>
+    <div class="result" id="result">
+      <h3>
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Tempo equivalente à sua taxa-hora
+      </h3>
       <div class="time-large" id="exactTime">0min</div>
+      <span class="time-sub" id="exactTimeDetail"></span>
       <div class="slots" id="slots"></div>
     </div>
   </div>
 
   <div class="card">
-    <h3 style="margin-top:0;">Histórico</h3>
+    <div class="card-header">
+      <h3>Histórico</h3>
+    </div>
     <div class="history-list" id="historyList"></div>
-    <div style="display:flex;gap:8px;margin-top:12px;">
-      <button class="btn-clear" id="clearHistory" style="flex:1;">Limpar histórico</button>
-      <button class="btn-export" id="btnExport" style="flex:1;background:#f3f4f6;border:1px solid #d1d5db;color:#374151;">Exportar CSV</button>
+    <div class="btn-group">
+      <button class="btn-secondary" id="clearHistory">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        Limpar histórico
+      </button>
+      <button class="btn-ghost" id="btnExport">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Exportar Excel
+      </button>
     </div>
   </div>
 
+  <div class="toast" id="toast"></div>
+
 <script>
 const STORAGE_KEY = 'consulta_history_v1';
-const DEFAULT_SLOTS = [10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 70, 80, 90, 120]; // minutos
+const DEFAULT_SLOTS = [10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 70, 80, 90, 120];
 
 const targetRate = document.getElementById('targetRate');
 const patientName = document.getElementById('patientName');
@@ -119,10 +202,11 @@ const insurance = document.getElementById('insurance');
 const paidValue = document.getElementById('paidValue');
 const result = document.getElementById('result');
 const exactTime = document.getElementById('exactTime');
+const exactTimeDetail = document.getElementById('exactTimeDetail');
 const slots = document.getElementById('slots');
 const historyList = document.getElementById('historyList');
-const clearHistory = document.getElementById('clearHistory');
 const btnSave = document.getElementById('btnSave');
+const toast = document.getElementById('toast');
 
 function formatTime(minutes) {
   const h = Math.floor(minutes / 60);
@@ -132,10 +216,26 @@ function formatTime(minutes) {
   return `${m}min`;
 }
 
+function formatTimeDetail(minutes) {
+  const h = Math.floor(minutes / 60);
+  const m = Math.round(minutes % 60);
+  const total = minutes.toFixed(1);
+  if (h > 0 && m > 0) return `≈ ${total} min total (${h}h ${m}min)`;
+  if (h > 0) return `≈ ${total} min total (${h}h)`;
+  return `≈ ${total} min total`;
+}
+
 function findRecommendedSlot(exactMinutes) {
   return DEFAULT_SLOTS.reduce((prev, curr) =>
     Math.abs(curr - exactMinutes) < Math.abs(prev - exactMinutes) ? curr : prev
   );
+}
+
+function showToast(msg, success = false) {
+  toast.textContent = msg;
+  toast.className = 'toast' + (success ? ' success' : '');
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2000);
 }
 
 function calculate() {
@@ -144,9 +244,10 @@ function calculate() {
   if (value <= 0) { result.style.display = 'none'; btnSave.style.display = 'none'; return; }
   const exactMinutes = (value / rate) * 60;
   exactTime.textContent = formatTime(exactMinutes);
+  exactTimeDetail.textContent = formatTimeDetail(exactMinutes);
   renderSlots(exactMinutes);
   result.style.display = 'block';
-  btnSave.style.display = 'block';
+  btnSave.style.display = 'flex';
 }
 
 function renderSlots(exactMinutes) {
@@ -176,11 +277,12 @@ function saveEntry() {
   history.unshift(entry);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
   renderHistory();
-  btnSave.textContent = 'Salvo!';
-  btnSave.style.background = '#6b7280';
+  showToast('Registro salvo!', true);
+  btnSave.innerHTML = `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Salvo!`;
+  btnSave.disabled = true;
   setTimeout(() => {
-    btnSave.textContent = 'Salvar no histórico';
-    btnSave.style.background = '#16a34a';
+    btnSave.innerHTML = `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg> Salvar no histórico`;
+    btnSave.disabled = false;
   }, 1500);
 }
 
@@ -192,24 +294,35 @@ function getHistory() {
 function renderHistory() {
   const history = getHistory();
   if (history.length === 0) {
-    historyList.innerHTML = '<div class="empty">Nenhum registro ainda</div>';
+    historyList.innerHTML = `
+      <div class="empty">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Nenhum registro ainda
+      </div>`;
     return;
   }
   historyList.innerHTML = history.map((e, idx) => `
     <div class="history-item">
       <div class="history-info">
         <span class="history-name">${escapeHtml(e.name)}</span>
-        <span class="history-meta">${e.insurance ? escapeHtml(e.insurance) + ' • ' : ''}${formatDate(e.date)}${e.recommendedMinutes ? ' • ' + e.recommendedMinutes + 'min' : ''}</span>
+        <span class="history-meta">
+          ${e.insurance ? `<span>${escapeHtml(e.insurance)}</span>` : ''}
+          <span>${formatDate(e.date)}</span>
+          ${e.recommendedMinutes ? `<span>• ${e.recommendedMinutes}min</span>` : ''}
+        </span>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;">
+      <div style="display:flex;align-items:center;gap:4px;">
         <span class="history-value">R$ ${e.value.toFixed(2)}</span>
-        <button class="btn-del" data-idx="${idx}" style="padding:6px 10px;background:#fee2e2;border:1px solid #fecaca;color:#991b1b;border-radius:6px;font-size:0.75rem;font-weight:600;cursor:pointer;">Excluir</button>
+        <div class="history-actions">
+          <button class="btn-icon delete" data-idx="${idx}" title="Excluir">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          </button>
+        </div>
       </div>
     </div>
   `).join('');
 
-  // Bind delete buttons
-  document.querySelectorAll('.btn-del').forEach(btn => {
+  document.querySelectorAll('.btn-icon.delete').forEach(btn => {
     btn.addEventListener('click', (ev) => {
       const idx = parseInt(ev.currentTarget.dataset.idx);
       deleteEntry(idx);
@@ -223,6 +336,7 @@ function deleteEntry(idx) {
   history.splice(idx, 1);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
   renderHistory();
+  showToast('Registro excluído');
 }
 
 function formatDate(iso) {
@@ -243,16 +357,17 @@ function escapeHtml(text) {
 document.getElementById('btnCalc').addEventListener('click', calculate);
 btnSave.addEventListener('click', saveEntry);
 
-clearHistory.addEventListener('click', () => {
+document.getElementById('clearHistory').addEventListener('click', () => {
   if (confirm('Apagar todo o histórico?')) {
     localStorage.removeItem(STORAGE_KEY);
     renderHistory();
+    showToast('Histórico limpo');
   }
 });
 
 document.getElementById('btnExport').addEventListener('click', () => {
   const history = getHistory();
-  if (history.length === 0) { alert('Nenhum dado para exportar'); return; }
+  if (history.length === 0) { showToast('Nenhum dado para exportar'); return; }
   const wsData = [
     ['Nome', 'Seguradora/Plano', 'Valor Pago (R$)', 'Taxa-hora (R$)', 'Minutos Recomendados', 'Data'],
     ...history.map(e => [
@@ -265,26 +380,20 @@ document.getElementById('btnExport').addEventListener('click', () => {
     ])
   ];
   const ws = XLSX.utils.aoa_to_sheet(wsData);
-  // Formatação de moeda nas colunas C e D
   const range = XLSX.utils.decode_range(ws['!ref']);
   for (let R = 1; R <= range.e.r; ++R) {
-    const cAddr = XLSX.utils.encode_cell({r:R, c:2}); // Valor Pago
-    const dAddr = XLSX.utils.encode_cell({r:R, c:3}); // Taxa-hora
+    const cAddr = XLSX.utils.encode_cell({r:R, c:2});
+    const dAddr = XLSX.utils.encode_cell({r:R, c:3});
     if (ws[cAddr]) { ws[cAddr].t = 'n'; ws[cAddr].z = 'R$ #,##0.00'; }
     if (ws[dAddr]) { ws[dAddr].t = 'n'; ws[dAddr].z = 'R$ #,##0.00'; }
   }
-  // Ajustar largura das colunas
   ws['!cols'] = [
-    {wch: 25}, // Nome
-    {wch: 22}, // Seguradora
-    {wch: 18}, // Valor Pago
-    {wch: 16}, // Taxa-hora
-    {wch: 22}, // Minutos Recomendados
-    {wch: 12}  // Data
+    {wch: 25}, {wch: 22}, {wch: 18}, {wch: 16}, {wch: 22}, {wch: 12}
   ];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Histórico');
   XLSX.writeFile(wb, 'historico-consultas.xlsx');
+  showToast('Excel exportado!', true);
 });
 
 calculate();
